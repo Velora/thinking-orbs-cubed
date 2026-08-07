@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react';
-import type { OrbState } from 'thinking-orbs';
-import { ThinkingOrb } from 'thinking-orbs';
+import type { CubeState } from 'thinking-orbs';
+import { ThinkingCube } from 'thinking-orbs';
 
-const STATES: Array<{ state: OrbState; blurb: string }> = [
-  { state: 'working', blurb: 'particles on tilted orbits' },
-  { state: 'searching', blurb: 'a scan meridian sweeps the field' },
-  { state: 'solving', blurb: 'bands scramble, then click back' },
-  { state: 'listening', blurb: 'a waveform rolls through the rings' },
-  { state: 'connecting', blurb: 'a constellation wires itself' },
-  { state: 'weaving', blurb: 'three strands plait around the sphere' },
-  { state: 'composing', blurb: 'an undulating sash of bands' },
-  { state: 'breathing', blurb: 'a ring slowly morphing' },
-  { state: 'shaping', blurb: 'circle → triangle → square' }
+const STATES: Array<{ state: CubeState; blurb: string }> = [
+  { state: 'working', blurb: 'particles run along the cube edges' },
+  { state: 'searching', blurb: 'a scan plane sweeps the cube faces' },
+  { state: 'solving', blurb: 'cube layers scramble, then click back' },
+  { state: 'listening', blurb: 'a waveform rolls through the cube' },
+  { state: 'connecting', blurb: 'a cube-surface network wires itself' },
+  { state: 'weaving', blurb: 'three strands wrap around the cube' },
+  { state: 'composing', blurb: 'an undulating sash wraps the cube' },
+  { state: 'breathing', blurb: 'nested cube shells slowly breathe' },
+  { state: 'shaping', blurb: 'a wire cube reshapes in three axes' }
 ];
 
 export function App() {
@@ -26,7 +26,7 @@ export function App() {
   return (
     <div className="page">
       <header>
-        <span className="mono">THINKING-ORBS · SIX STATES · TWO SIZES · AUTO THEME</span>
+        <span className="mono">THINKING-CUBES · NINE STATES · TWO SIZES · AUTO THEME</span>
         <button className="mono theme-btn" type="button" onClick={() => setDark((d) => !d)}>
           {dark ? 'LIGHT' : 'DARK'}
         </button>
@@ -36,8 +36,8 @@ export function App() {
         {STATES.map(({ state, blurb }) => (
           <div key={state} className="card">
             <div className="pair">
-              <ThinkingOrb state={state} size={64} />
-              <ThinkingOrb state={state} size={20} />
+              <ThinkingCube state={state} size={64} />
+              <ThinkingCube state={state} size={20} />
             </div>
             <div className="text">
               <span className="title">{state}</span>
