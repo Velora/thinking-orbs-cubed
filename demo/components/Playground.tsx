@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import type { OrbSize, OrbState } from '../../src';
-import { ThinkingOrb } from '../../src';
+import type { CubeSize, CubeState } from '../../src';
+import { ThinkingCube } from '../../src';
 import { cn } from '../lib/utils';
 import { CopyButton } from './CopyButton';
 import { PlayPauseToggle } from './PlayPauseToggle';
 
-const STATES: OrbState[] = [
+const STATES: CubeState[] = [
   'working',
   'searching',
   'solving',
@@ -16,15 +16,15 @@ const STATES: OrbState[] = [
   'breathing',
   'shaping'
 ];
-const SIZES: OrbSize[] = [64, 20];
+const SIZES: CubeSize[] = [64, 20];
 
 const SPEED_MIN = 25;
 const SPEED_MAX = 300;
 
-function buildSnippet(state: OrbState, size: OrbSize, speed: number) {
+function buildSnippet(state: CubeState, size: CubeSize, speed: number) {
   const props = [`state="${state}"`, `size={${size}}`];
   if (speed !== 100) props.push(`speed={${(speed / 100).toFixed(2)}}`);
-  return `import { ThinkingOrb } from 'thinking-orbs';\n\n<ThinkingOrb ${props.join(' ')} />`;
+  return `import { ThinkingCube } from 'thinking-orbs';\n\n<ThinkingCube ${props.join(' ')} />`;
 }
 
 const tabBtnBase = 'flex items-center justify-center h-9 px-3 border-none rounded-lg font-[Inter,sans-serif] text-[13px] font-normal leading-[14px] cursor-pointer transition-[background-color,color] duration-150 whitespace-nowrap [-webkit-tap-highlight-color:transparent] hover:bg-(--tab-hover-bg) hover:text-(--tab-hover-color) focus-visible:outline-2 focus-visible:outline-[rgba(255,255,255,0.5)] focus-visible:outline-offset-2';
@@ -52,8 +52,8 @@ export function Playground({
   speed: number;
   onSpeedChange: (value: number) => void;
 }) {
-  const [state, setState] = useState<OrbState>('listening');
-  const [size, setSize] = useState<OrbSize>(64);
+  const [state, setState] = useState<CubeState>('listening');
+  const [size, setSize] = useState<CubeSize>(64);
   // Playground starts paused so the page loads quietly; the PlayPauseToggle
   // below only flips this local state, so the surrounding Examples keep
   // auto-playing regardless.
@@ -68,7 +68,7 @@ export function Playground({
 
       <div className="flex flex-col gap-4 bg-(--panel-bg) rounded-[10px] p-4">
         <div className="flex items-end gap-6 max-sm:flex-col max-sm:items-stretch max-sm:gap-4">
-          <div className="flex flex-col gap-[9px] min-w-0" role="radiogroup" aria-label="Orb state">
+          <div className="flex flex-col gap-[9px] min-w-0" role="radiogroup" aria-label="Cube state">
             <span className="text-xs font-normal leading-[14px] text-(--text-muted)">State</span>
             <div className="flex gap-2 items-center flex-wrap">
               {STATES.map((s) => (
@@ -81,7 +81,7 @@ export function Playground({
         </div>
 
         <div className="flex items-end gap-6 max-sm:flex-col max-sm:items-stretch max-sm:gap-4">
-          <div className="flex flex-col gap-[9px] min-w-0" role="radiogroup" aria-label="Orb size">
+          <div className="flex flex-col gap-[9px] min-w-0" role="radiogroup" aria-label="Cube size">
             <span className="text-xs font-normal leading-[14px] text-(--text-muted)">Size</span>
             <div className="flex gap-2 items-center">
               {SIZES.map((s) => (
@@ -113,7 +113,7 @@ export function Playground({
       </div>
 
       <div className="relative w-full min-h-[304px] rounded-[10px] bg-(--surface) flex flex-col items-center justify-center p-12 gap-6 max-sm:p-6">
-        <ThinkingOrb key={`${state}-${size}`} state={state} size={size} speed={speed / 100} paused={paused} />
+        <ThinkingCube key={`${state}-${size}`} state={state} size={size} speed={speed / 100} paused={paused} />
         <PlayPauseToggle playing={!paused} onToggle={() => setPaused((p) => !p)} className="max-sm:absolute max-sm:bottom-6 max-sm:left-1/2 max-sm:-translate-x-1/2" />
       </div>
 
