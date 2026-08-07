@@ -1,6 +1,6 @@
 import React from 'react';
-import type { OrbState } from '../../src';
-import { ThinkingOrb } from '../../src';
+import type { CubeState } from '../../src';
+import { ThinkingCube } from '../../src';
 
 const listeningPillClass =
   'inline-flex items-center gap-3 w-[270px] h-[74px] pl-[9px] pr-8 rounded-full bg-(--pill-fill) shadow-(--pill-stroke) text-(--pill-fg) text-lg leading-6 font-inherit cursor-default';
@@ -11,7 +11,7 @@ const chipClass =
 
 // Order matters: with row-major auto-placement over 151px rows, this
 // sequence of 1- and 2-row spans tiles five rows with no leftover gaps.
-const CHIP_STATES: OrbState[] = [
+const CHIP_STATES: CubeState[] = [
   'listening',
   'working',
   'searching',
@@ -22,9 +22,9 @@ const CHIP_STATES: OrbState[] = [
 ];
 
 // Chip states that render as full large pills (the rest stay compact).
-const LARGE_CHIPS = new Set<OrbState>(['working', 'searching', 'connecting']);
+const LARGE_CHIPS = new Set<CubeState>(['working', 'searching', 'connecting']);
 
-const HERO_PILLS: Array<{ state: OrbState; label: string }> = [
+const HERO_PILLS: Array<{ state: CubeState; label: string }> = [
   { state: 'solving', label: 'Solving….' },
   { state: 'composing', label: 'Thinking….' },
 ];
@@ -35,8 +35,6 @@ export function Examples({
   bigChips = false,
   smallAll = false,
 }: {
-  /** Forwarded to every <ThinkingOrb speed={...}/> so the Playground's
-   *  speed slider drives these hero examples too. */
   speed?: number;
   /** Dev-only: strip the gray surface fill behind the hero boxes. */
   debug?: boolean;
@@ -57,9 +55,9 @@ export function Examples({
           >
             <div className={smallAll ? chipClass : listeningPillClass}>
               {smallAll ? (
-                <ThinkingOrb state={state} size={20} speed={speed} />
+                <ThinkingCube state={state} size={20} speed={speed} />
               ) : (
-                <ThinkingOrb state={state} size={64} speed={speed} style={{ width: 56, height: 56 }} />
+                <ThinkingCube state={state} size={64} speed={speed} style={{ width: 56, height: 56 }} />
               )}
               <span className="t-shimmer" data-text={label}>{label}</span>
             </div>
@@ -82,9 +80,9 @@ export function Examples({
           >
             <div className={large ? listeningPillClass : chipClass}>
               {large ? (
-                <ThinkingOrb state={state} size={64} speed={speed} style={{ width: 56, height: 56 }} />
+                <ThinkingCube state={state} size={64} speed={speed} style={{ width: 56, height: 56 }} />
               ) : (
-                <ThinkingOrb state={state} size={20} speed={speed} />
+                <ThinkingCube state={state} size={20} speed={speed} />
               )}
               <span className="t-shimmer" data-text={label}>{label}</span>
             </div>
