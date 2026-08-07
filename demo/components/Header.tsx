@@ -1,4 +1,5 @@
 import React from 'react';
+import { ThinkingCube } from '../../src';
 import type { Theme } from '../hooks/useTheme';
 import { GitHubIcon, XIcon } from './icons';
 
@@ -69,17 +70,15 @@ export function Header({
         </a>
       </nav>
       <div className="relative -mt-[190px] -mb-5 cursor-pointer group" aria-hidden="true">
-        <img
-          className="block relative transition-[filter,transform] duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[filter,transform] motion-reduce:!transition-none group-hover:[filter:brightness(1.1)] group-hover:[transform:rotate(8deg)_scale(1.06)]"
-          src="/header.png"
-          alt=""
-          width="146"
-          height="117"
-          decoding="async"
+        <ThinkingCube
+          state="working"
+          size={64}
+          className="block relative transition-transform duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform motion-reduce:!transition-none group-hover:[transform:rotate(8deg)_scale(1.06)]"
+          style={{ width: 92, height: 92 }}
         />
       </div>
-      <h1 className="text-[22px] font-medium leading-[30px] text-(--title-color)">Thinking orbs</h1>
-      <p className="text-sm font-normal leading-[21px] text-(--subtitle-color) opacity-50">Animated thinking orb component</p>
+      <h1 className="text-[22px] font-medium leading-[30px] text-(--title-color)">Thinking cubes</h1>
+      <p className="text-sm font-normal leading-[21px] text-(--subtitle-color) opacity-50">Animated thinking cube component</p>
     </header>
   );
 }
