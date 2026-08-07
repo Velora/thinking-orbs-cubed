@@ -1,162 +1,159 @@
-// Density profiles + the multiplier machinery that scales them. The base
-// rows are inkform's `fine` profiles; each shipped preset (state × size)
-// applies count / radius multipliers on top, resolved once per mount.
-
 export interface ModeOpts {
   [key: string]: number | undefined;
 }
 
-// 2-D lattices (rings × dots-per-ring) come in pairs — each side takes
-// √scale so the TOTAL dot count scales by `scale`; flat lists scale
-// linearly. `iconD` sets the morph outline's sampling density.
-const COUNT_PAIRS: ReadonlyArray<readonly [string, string]> = [
-  ['latRings', 'lonDensity'],
-  ['rings', 'lonDensity'],
-  ['lanes', 'segs']
-];
-const COUNT_KEYS = ['orbitN', 'ghostN', 'nodeN', 'strandN', 'signals'] as const;
-const ICON_DENSITY_KEYS = ['iconD'] as const;
-
-// Every key that sets a dot's rendered radius — scaling all of them keeps
-// a dot's near/far falloff intact while shrinking or growing the mark.
+const COUNT_PAIRS: ReadonlyArray<readonly [string, string]> = [['lanes', 'segments']];
+const GRID_KEYS = ['faceGrid'] as const;
+const COUNT_KEYS = [
+  'edgeDots',
+  'particleCount',
+  'trailDots',
+  'nodeCount',
+  'signalCount',
+  'strandDots',
+  'surfaceDots'
+] as const;
 const RADIUS_KEYS = [
   'rBase',
   'rDepth',
   'rActive',
-  'rDot',
-  'ghostR',
-  'partR',
-  'partRDepth',
+  'trailR',
+  'particleR',
+  'particleDepthR',
   'nodeR',
-  'nodeRDepth'
+  'nodeDepthR',
+  'surfaceR',
+  'dotR',
+  'dotDepthR'
 ] as const;
 
 export function scaleCounts(opts: ModeOpts, scale: number): ModeOpts {
   const out: ModeOpts = { ...opts };
   const done = new Set<string>();
-  const rt = Math.sqrt(scale);
+  const root = Math.sqrt(scale);
   for (const [a, b] of COUNT_PAIRS) {
-    const va = out[a];
-    const vb = out[b];
-    if (va != null && vb != null && !done.has(a) && !done.has(b)) {
-      out[a] = Math.max(2, Math.round(va * rt));
-      out[b] = Math.max(2, Math.round(vb * rt));
+    const av = out[a];
+    const bv = out[b];
+    if (av != null && bv != null) {
+      out[a] = Math.max(1, Math.round(av * root));
+      out[b] = Math.max(4, Math.round(bv * root));
       done.add(a);
       done.add(b);
     }
   }
-  for (const k of COUNT_KEYS) {
-    const v = out[k];
-    // 0 means the mode opted out of that layer entirely (ring has no ghost
-    // sphere) — scaling must not resurrect it as a single stray dot
-    if (v != null && v !== 0 && !done.has(k)) out[k] = Math.max(1, Math.round(v * scale));
+  for (const key of GRID_KEYS) {
+    const value = out[key];
+    if (value != null) out[key] = Math.max(2, Math.round(value * root));
   }
-  for (const k of ICON_DENSITY_KEYS) {
-    const v = out[k];
-    if (v != null) out[k] = Math.max(0.02, v * scale);
+  for (const key of COUNT_KEYS) {
+    const value = out[key];
+    if (value != null && value !== 0 && !done.has(key)) out[key] = Math.max(1, Math.round(value * scale));
   }
   return out;
 }
 
 export function scaleRadii(opts: ModeOpts, scale: number): ModeOpts {
   const out: ModeOpts = { ...opts };
-  for (const k of RADIUS_KEYS) {
-    const v = out[k];
-    if (v != null) out[k] = v * scale;
+  for (const key of RADIUS_KEYS) {
+    const value = out[key];
+    if (value != null) out[key] = value * scale;
   }
-  // remember the multiplier itself — spacing-derived radii (the morph
-  // outline) use it, since they aren't based on any single radius key
-  out.rSizeMul = (out.rSizeMul ?? 1) * scale;
   return out;
 }
 
-/** Base (fine) profiles per mode, before preset multipliers. */
 export const BASE_PROFILES: Record<string, ModeOpts> = {
-  globe: {
-    latRings: 17,
-    lonDensity: 44,
-    rBase: 0.6,
-    rDepth: 1.7,
-    rBoost: 1.0,
-    inkFar: 0.62,
-    inkSpan: 0.54,
+  orbits: {
+    edgeDots: 10,
+    particleCount: 5,
+    trailDots: 3,
+    trailR: 0.75,
+    trailA: 0.48,
+    particleR: 1.45,
+    particleDepthR: 1.2,
     rsPow: 0.6,
     rMin: 0.3
   },
-  orbits: {
-    orbitN: 12,
-    ghostN: 40,
-    ghostR: 0.9,
-    ghostA: 0.5,
-    particles: 3,
-    partR: 1.2,
-    partRDepth: 1.6,
+  globe: {
+    faceGrid: 9,
+    rBase: 0.62,
+    rDepth: 1.65,
+    rBoost: 0.9,
+    inkFar: 0.64,
+    inkSpan: 0.54,
+    scanRate: 1.35,
+    scanWidth: 0.16,
+    dimBase: 0.48,
     rsPow: 0.6,
     rMin: 0.3
   },
   rubik: {
-    latRings: 15,
-    lonDensity: 40,
-    moveCount: 14,
-    rBase: 0.6,
+    faceGrid: 8,
+    moveCount: 12,
+    rBase: 0.62,
     rDepth: 1.7,
-    rActive: 0.3,
-    inkFar: 0.62,
+    rActive: 0.38,
+    inkFar: 0.64,
     inkSpan: 0.54,
     rsPow: 0.6,
     rMin: 0.3
   },
   wave: {
-    rings: 15,
-    lonDensity: 40,
-    rBase: 0.6,
-    rDepth: 1.7,
+    faceGrid: 8,
+    waveAmp: 0.055,
+    rBase: 0.62,
+    rDepth: 1.68,
     rsPow: 0.6,
     rMin: 0.3
   },
   web: {
-    nodeN: 30,
-    thr: 0.72,
-    signals: 5,
-    nodeR: 1.4,
-    nodeRDepth: 1.8,
+    nodeCount: 30,
+    linkDistance: 0.82,
+    signalCount: 5,
+    nodeR: 1.35,
+    nodeDepthR: 1.75,
     lineW: 0.8,
+    cubeScale: 1,
     rsPow: 0.6,
     rMin: 0.3
   },
   braid: {
-    strandN: 52,
-    turns: 3.0,
-    ghostN: 150,
-    rBase: 1.2,
-    rDepth: 1.8,
+    strandDots: 52,
+    turns: 3,
+    surfaceDots: 100,
+    surfaceR: 0.72,
+    rBase: 1.15,
+    rDepth: 1.75,
     rsPow: 0.6,
     rMin: 0.3
   },
   ribbon: {
     lanes: 5,
-    segs: 88,
-    ghostN: 150,
-    rBase: 1.1,
-    rDepth: 1.7,
+    segments: 72,
+    surfaceDots: 90,
+    surfaceR: 0.7,
+    rBase: 1.05,
+    rDepth: 1.65,
+    spin: 0,
+    waveMul: 1,
+    bandMul: 1,
     rsPow: 0.6,
     rMin: 0.3
   },
-  // ring shares ribbon's painter; faceOn cancels the camera tilt and moves
-  // the undulation onto the radius, and there is no ghost sphere behind it
   ring: {
-    lanes: 5,
-    segs: 88,
-    ghostN: 0,
-    faceOn: 1,
-    rBase: 1.1,
-    rDepth: 1.7,
+    edgeDots: 9,
+    shells: 3,
+    breathAmp: 0.075,
+    rBase: 0.95,
+    rDepth: 1.55,
     rsPow: 0.6,
     rMin: 0.3
   },
   morph: {
-    rDot: 0.021,
-    iconD: 1,
+    edgeDots: 10,
+    dotR: 1.25,
+    dotDepthR: 0.9,
+    shapeScale: 1,
+    rsPow: 0.6,
     rMin: 0.25
   }
 };

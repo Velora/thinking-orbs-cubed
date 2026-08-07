@@ -1,9 +1,3 @@
-// Shared primitives for the dotted 3D thought-orbs. Ported from inkform
-// (PlotterLab's HalftoneSphere lineage): honestly 3D — rotated,
-// depth-shaded, z-sorted. Depth is carried by dot size and ink weight
-// alone. Plain 2D canvas fills only: no ctx.filter, no SVG filters, so
-// every mode renders identically in Chrome, Safari and Firefox.
-
 export interface Dot {
   x: number;
   y: number;

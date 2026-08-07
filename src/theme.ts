@@ -4,7 +4,7 @@
 
 import type { RefObject } from 'react';
 import { useEffect, useState } from 'react';
-import type { OrbTheme } from './types';
+import type { CubeTheme } from './types';
 
 function ancestorTheme(el: Element | null): boolean | null {
   let node: Element | null = el;
@@ -24,7 +24,7 @@ function systemDark(): boolean {
 }
 
 /** Resolve the effective dark/light substrate for a mounted element. */
-export function useResolvedDark(theme: OrbTheme, hostRef: RefObject<Element | null>): boolean {
+export function useResolvedDark(theme: CubeTheme, hostRef: RefObject<Element | null>): boolean {
   const [dark, setDark] = useState(true);
 
   useEffect(() => {

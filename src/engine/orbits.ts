@@ -1,80 +1,55 @@
-// Orbits: particles on tilted orbits — the "working" state. No nucleus
-// (the tuned preset runs coreless): just ghost paths and the particles
-// doing the work.
-
 import type { Dot, ModeDraw } from './types';
-import { hashD, makeProj, paint, radiusScale } from './core';
+import { frac, hashD, paint, radiusScale } from './core';
+import { CUBE_EDGE_COUNT, cubeDepth, cubeEdgePoint, cubeRadius, makeCubeProj } from './cube';
 
 export const drawOrbits: ModeDraw = (ctx, size, t, dark, o) => {
-  const cx = size / 2;
-  const cy = size / 2;
-  const R = (size / 2) * 0.82;
-  const pt = makeProj(t * 0.12, 0.3, cx, cy, 1);
+  const center = size / 2;
+  const half = cubeRadius(size, 0.98);
+  const pt = makeCubeProj(Math.sin(t * 0.15) * 0.07, Math.sin(t * 0.11) * 0.035, center, center, 1);
   const rs = radiusScale(size, o.rsPow ?? 0.6);
-
   const dots: Dot[] = [];
-  const orbitN = o.orbitN ?? 12;
-  const ghostN = o.ghostN ?? 40;
-  const particles = o.particles ?? 3;
+  const edgeDots = Math.max(2, Math.round(o.edgeDots ?? 10));
 
-  // orbits: each a tilted circle — a ghost path + running particles
-  for (let orb = 0; orb < orbitN; orb++) {
-    const h1 = hashD(orb, 1.7);
-    const h2 = hashD(orb, 5.2);
-    const h3 = hashD(orb, 8.9);
-    const ro = R * (0.45 + 0.52 * h1);
-    const th = h1 * 2 * Math.PI;
-    const phi = Math.acos(2 * h2 - 1);
-    // orbit plane basis (u, v ⟂ normal n)
-    const nx = Math.sin(phi) * Math.cos(th);
-    const ny = Math.cos(phi);
-    const nz = Math.sin(phi) * Math.sin(th);
-    let ux = -ny;
-    let uy = nx;
-    const uz = 0;
-    const ul = Math.max(1e-6, Math.sqrt(ux * ux + uy * uy));
-    ux /= ul;
-    uy /= ul;
-    const vx = ny * uz - nz * uy;
-    const vy = nz * ux - nx * uz;
-    const vz = nx * uy - ny * ux;
-    const speed = (0.25 + 0.55 * h3) * (h3 > 0.5 ? 1 : -1);
-
-    // ghost path
-    for (let k = 0; k < ghostN; k++) {
-      const a = (k / ghostN) * 2 * Math.PI;
-      const [px, py, z] = pt(
-        (ux * Math.cos(a) + vx * Math.sin(a)) * ro,
-        (uy * Math.cos(a) + vy * Math.sin(a)) * ro,
-        (uz * Math.cos(a) + vz * Math.sin(a)) * ro
-      );
-      const depth = (z / ro + 1) / 2;
+  for (let edge = 0; edge < CUBE_EDGE_COUNT; edge++) {
+    for (let i = 0; i < edgeDots; i++) {
+      const p = cubeEdgePoint(edge, i / (edgeDots - 1), half);
+      const [x, y, z] = pt(p[0], p[1], p[2]);
+      const depth = cubeDepth(z, half);
       dots.push({
-        x: px,
-        y: py,
+        x,
+        y,
         z,
-        r: (o.ghostR ?? 0.9) * rs,
-        white: 0.72,
-        a: (o.ghostA ?? 0.5) * (0.4 + 0.6 * depth)
-      });
-    }
-    // the particles doing the work
-    for (let m = 0; m < particles; m++) {
-      const a = t * speed + (m / particles) * 2 * Math.PI + h2 * 6;
-      const [px, py, z] = pt(
-        (ux * Math.cos(a) + vx * Math.sin(a)) * ro,
-        (uy * Math.cos(a) + vy * Math.sin(a)) * ro,
-        (uz * Math.cos(a) + vz * Math.sin(a)) * ro
-      );
-      const depth = (z / ro + 1) / 2;
-      dots.push({
-        x: px,
-        y: py,
-        z,
-        r: ((o.partR ?? 1.2) + (o.partRDepth ?? 1.6) * depth) * rs,
-        white: 0.3 - 0.22 * depth
+        r: (o.trailR ?? 0.75) * (0.72 + depth * 0.38) * rs,
+        white: 0.76 - depth * 0.12,
+        a: (o.trailA ?? 0.48) * (0.45 + depth * 0.55)
       });
     }
   }
+
+  const particles = Math.max(1, Math.round(o.particleCount ?? 5));
+  const trailDots = Math.max(0, Math.round(o.trailDots ?? 3));
+  for (let i = 0; i < particles; i++) {
+    const edge = Math.floor(hashD(i, 3.7) * CUBE_EDGE_COUNT);
+    const forward = edge % 2 === 0;
+    const phase = frac(t * (0.22 + hashD(i, 8.1) * 0.13) + hashD(i, 1.9));
+    const travel = forward ? phase : 1 - phase;
+    for (let trail = trailDots; trail >= 0; trail--) {
+      const f = travel + (forward ? -1 : 1) * trail * 0.065;
+      if (f < 0 || f > 1) continue;
+      const p = cubeEdgePoint(edge, f, half);
+      const [x, y, z] = pt(p[0], p[1], p[2]);
+      const depth = cubeDepth(z, half);
+      const strength = 1 - trail / Math.max(1, trailDots + 1);
+      dots.push({
+        x,
+        y,
+        z: z + trail * 0.001,
+        r: ((o.particleR ?? 1.45) + (o.particleDepthR ?? 1.2) * depth) * (0.55 + strength * 0.45) * rs,
+        white: 0.34 - depth * 0.27,
+        a: 0.3 + strength * 0.7
+      });
+    }
+  }
+
   paint(ctx, dots, dark, o.rMin);
 };

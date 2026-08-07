@@ -1,14 +1,8 @@
-// The ThinkingOrb component. One shared clock (performance.now) keeps
-// every mounted orb in phase; each instance runs its own rAF loop but
-// pauses automatically while offscreen (IntersectionObserver) or when
-// the tab is hidden (visibilitychange). Reduced-motion users get a
-// static representative frame that still follows the live theme.
-
 import { useEffect, useRef } from 'react';
-import { MODE_DRAWS } from './engine/registry';
+import { CUBE_DRAWS } from './engine/registry';
 import { resolvePreset } from './presets';
 import { useReducedMotion, useResolvedDark } from './theme';
-import type { ThinkingOrbProps } from './types';
+import type { ThinkingCubeProps } from './types';
 
 const LABELS: Record<string, string> = {
   working: 'Working…',
@@ -31,7 +25,7 @@ export function ThinkingOrb({
   style,
   'aria-label': ariaLabel,
   ...rest
-}: ThinkingOrbProps) {
+}: ThinkingCubeProps) {
   const ref = useRef<HTMLCanvasElement | null>(null);
   const dark = useResolvedDark(theme, ref);
   const reduced = useReducedMotion();
@@ -46,43 +40,40 @@ export function ThinkingOrb({
     if (!ctx) return;
 
     const { mode, speed: baseSpeed, opts } = resolvePreset(state, size);
-    const draw = MODE_DRAWS[mode];
-    const effSpeed = baseSpeed * speed;
+    const draw = CUBE_DRAWS[mode];
+    const effectiveSpeed = baseSpeed * speed;
 
-    const frame = (tSec: number) => {
+    const frame = (seconds: number) => {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, size, size);
-      draw(ctx, size, tSec, dark, opts);
+      draw(ctx, size, seconds, dark, opts);
     };
 
-    // reduced motion → one static, deterministic frame
     if (reduced) {
       frame(0.6);
       return;
     }
 
-    let raf = 0;
+    let animationFrame = 0;
     let running = false;
     const loop = () => {
-      frame((performance.now() / 1000) * effSpeed);
-      if (running) raf = requestAnimationFrame(loop);
+      frame((performance.now() / 1000) * effectiveSpeed);
+      if (running) animationFrame = requestAnimationFrame(loop);
     };
     const start = () => {
       if (running || paused) return;
       running = true;
-      raf = requestAnimationFrame(loop);
+      animationFrame = requestAnimationFrame(loop);
     };
     const stop = () => {
       running = false;
-      cancelAnimationFrame(raf);
+      cancelAnimationFrame(animationFrame);
     };
 
-    // draw at least one frame even when paused/offscreen
-    frame((performance.now() / 1000) * effSpeed);
+    frame((performance.now() / 1000) * effectiveSpeed);
 
-    // pause offscreen + on hidden tabs — free when not visible
     let visible = true;
-    const io =
+    const observer =
       typeof IntersectionObserver !== 'undefined'
         ? new IntersectionObserver(([entry]) => {
             visible = entry.isIntersecting;
@@ -90,18 +81,18 @@ export function ThinkingOrb({
             else stop();
           })
         : null;
-    io?.observe(canvas);
-    const onVis = () => {
+    observer?.observe(canvas);
+    const onVisibilityChange = () => {
       if (document.visibilityState === 'hidden') stop();
       else if (visible) start();
     };
-    document.addEventListener('visibilitychange', onVis);
-    if (!io) start();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    if (!observer) start();
 
     return () => {
       stop();
-      io?.disconnect();
-      document.removeEventListener('visibilitychange', onVis);
+      observer?.disconnect();
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [state, size, dark, speed, paused, reduced]);
 
@@ -115,3 +106,5 @@ export function ThinkingOrb({
     />
   );
 }
+
+export const ThinkingCube = ThinkingOrb;

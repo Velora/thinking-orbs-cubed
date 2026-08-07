@@ -1,6 +1,6 @@
-# thinking-orbs
+# Thinking cubes
 
-Dotted thought-orb loading indicators for AI & agent UIs. Nine hand-tuned animated states, each shipped at two purpose-tuned sizes, rendered on a plain 2D canvas — no WebGL, no filters, works identically in Chrome, Safari and Firefox.
+Dotted thought-cube loading indicators for AI and agent UIs. Nine hand-tuned animated states ship at two purpose-tuned sizes, all rendered on a plain 2D canvas with a consistent isometric cube orientation.
 
 [Live demo](https://orbs.jakubantalik.com) · [Repository](https://github.com/Jakubantalik/thinking-orbs) · [Report an issue](https://github.com/Jakubantalik/thinking-orbs/issues)
 
@@ -13,74 +13,80 @@ npm install thinking-orbs
 ## Quick start
 
 ```tsx
-import { ThinkingOrb } from 'thinking-orbs';
+import { ThinkingCube } from 'thinking-orbs';
 
 function Status() {
-  return <ThinkingOrb state="searching" size={64} />;
+  return <ThinkingCube state="searching" size={64} />;
 }
 ```
 
 ## States
 
-Nine verbs an agent can be doing, each a distinct animation:
+Each state keeps its original behavior while using cube faces, edges, or shells:
 
 ```tsx
-<ThinkingOrb state="working" />     {/* particles on tilted orbits */}
-<ThinkingOrb state="searching" />   {/* a scan meridian sweeps a dotted globe */}
-<ThinkingOrb state="solving" />     {/* bands scramble, then click back solved */}
-<ThinkingOrb state="listening" />   {/* a waveform rolls through the rings */}
-<ThinkingOrb state="connecting" />  {/* a constellation wires itself */}
-<ThinkingOrb state="weaving" />     {/* three strands plait around the sphere */}
-<ThinkingOrb state="composing" />   {/* an undulating multi-band sash */}
-<ThinkingOrb state="breathing" />   {/* a ring slowly morphing */}
-<ThinkingOrb state="shaping" />     {/* dotted outline: circle → triangle → square */}
+<ThinkingCube state="working" />
+<ThinkingCube state="searching" />
+<ThinkingCube state="solving" />
+<ThinkingCube state="listening" />
+<ThinkingCube state="connecting" />
+<ThinkingCube state="weaving" />
+<ThinkingCube state="composing" />
+<ThinkingCube state="breathing" />
+<ThinkingCube state="shaping" />
 ```
+
+- `working`: particles run along a dotted cube wireframe.
+- `searching`: a scan plane sweeps across the cube faces.
+- `solving`: cube layers make quarter turns and click back into place.
+- `listening`: a waveform ripples through the cube surface.
+- `connecting`: a moving network links nodes on the cube surface.
+- `weaving`: three strands plait around the cube.
+- `composing`: an undulating multi-band sash wraps the cube.
+- `breathing`: nested wireframe cube shells expand and contract.
+- `shaping`: a wire cube reshapes along three axes.
 
 ## Sizes
 
-Two tuned presets — separate designs, not a scale factor. `64` for chat-avatar scale, `20` for inline-text scale. Each carries its own dot count, dot size and speed tuning:
+Two separately tuned presets ship: `64` for chat-avatar scale and `20` for inline-text scale.
 
 ```tsx
-<ThinkingOrb state="working" size={64} />
-<ThinkingOrb state="working" size={20} />
+<ThinkingCube state="working" size={64} />
+<ThinkingCube state="working" size={20} />
 ```
 
 ## Theme
 
-Strictly monochrome — light ink for dark backgrounds, dark ink for light backgrounds — with the mode picked automatically from the host project:
+The monochrome canvas renders light marks for dark backgrounds and dark marks for light backgrounds.
 
 ```tsx
-<ThinkingOrb theme="auto" />   {/* default — detects from the project */}
-<ThinkingOrb theme="dark" />   {/* pin: light dots for dark backgrounds */}
-<ThinkingOrb theme="light" />  {/* pin: dark dots for light backgrounds */}
+<ThinkingCube theme="auto" />
+<ThinkingCube theme="dark" />
+<ThinkingCube theme="light" />
 ```
 
-`auto` resolves in three layers and updates live when any of them change:
-
-1. an ancestor `data-theme="dark|light"` attribute or `dark`/`light` class (the Tailwind / shadcn convention), watched via `MutationObserver`;
-2. otherwise `prefers-color-scheme`, subscribed for live OS theme switches;
-3. SSR-safe — the canvas paints only on the client, after the theme has resolved.
+`auto` reacts to ancestor `data-theme="dark|light"` attributes, `dark` or `light` classes, and `prefers-color-scheme`.
 
 ## Other props
 
 ```tsx
-<ThinkingOrb
+<ThinkingCube
   state="solving"
   size={20}
-  speed={1.5}          // multiplier on the preset's baked speed
-  paused={false}       // freeze on the current frame
-  aria-label="Analysing repository…"  // overrides the per-state default
+  speed={1.5}
+  paused={false}
+  aria-label="Analysing repository…"
 />
 ```
 
-All other `<canvas>` props (`className`, `style`, `data-*`, …) pass through.
+All other `<canvas>` props pass through. `ThinkingOrb` and the `OrbState`, `OrbSize`, `OrbTheme`, and `ThinkingOrbProps` types remain available as backward-compatible aliases and render the same cube designs.
 
-## Accessibility & performance
+## Accessibility and performance
 
-- `role="img"` with a sensible per-state `aria-label` out of the box.
-- `prefers-reduced-motion: reduce` renders a static representative frame — no animation — and still follows the live theme.
-- Every instance pauses automatically when scrolled offscreen (`IntersectionObserver`) or when the tab is hidden, and resumes in phase — all instances share one clock.
-- Plain 2D canvas arcs only: no `ctx.filter`, no SVG filters, no WebGL — the same pixels everywhere, cheap on low-end devices. Device-pixel-ratio capped at 2.
+- Every canvas has `role="img"` and a state-specific default `aria-label`.
+- Reduced-motion users receive a static representative cube frame.
+- Instances pause while offscreen or while the tab is hidden.
+- Rendering uses plain 2D canvas fills and strokes with device-pixel-ratio capped at 2.
 
 ## License
 

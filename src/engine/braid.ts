@@ -1,50 +1,51 @@
-// Braid: three strands plait around the sphere — the "weaving" state.
-// Each strand runs pole to pole on a helix, and a radial breathing term
-// makes them trade places, reading as the over/under of a plait.
-
 import type { Dot, ModeDraw } from './types';
-import { fibDir, frac, makeProj, paint, radiusScale } from './core';
+import { frac, paint, radiusScale } from './core';
+import { cubeDepth, cubeRadius, cubeSurface, cubeSurfaceSamples, makeCubeProj } from './cube';
 
 export const drawBraid: ModeDraw = (ctx, size, t, dark, o) => {
-  const cx = size / 2;
-  const cy = size / 2;
-  const R = (size / 2) * 0.76;
-  const pt = makeProj(t * 0.4, 0.3, cx, cy, 1);
+  const center = size / 2;
+  const half = cubeRadius(size, 0.96);
+  const pt = makeCubeProj(Math.sin(t * 0.16) * 0.065, Math.sin(t * 0.12) * 0.03, center, center, 1);
   const rs = radiusScale(size, o.rsPow ?? 0.6);
-
   const dots: Dot[] = [];
-  const ghostN = o.ghostN ?? 150;
-  for (let i = 0; i < ghostN; i++) {
-    const d = fibDir(i, ghostN);
-    const [px, py, z] = pt(d[0] * R, d[1] * R, d[2] * R);
-    const depth = (z / R + 1) / 2;
-    dots.push({ x: px, y: py, z, r: 0.8 * rs, white: 0.78, a: 0.1 + 0.22 * depth });
+  const surfaceDots = Math.max(0, Math.round(o.surfaceDots ?? 100));
+
+  for (const point of cubeSurfaceSamples(surfaceDots, half)) {
+    const [x, y, z] = pt(point[0], point[1], point[2]);
+    const depth = cubeDepth(z, half);
+    dots.push({
+      x,
+      y,
+      z,
+      r: (o.surfaceR ?? 0.72) * rs,
+      white: 0.79,
+      a: 0.08 + 0.2 * depth
+    });
   }
 
-  const strandN = o.strandN ?? 52;
+  const strandDots = Math.max(4, Math.round(o.strandDots ?? 52));
   const turns = o.turns ?? 3;
-  for (let s = 0; s < 3; s++) {
-    const phase = (s / 3) * 2 * Math.PI;
-    for (let i = 0; i < strandN; i++) {
-      // u walks pole to pole; the frac() drift slides the whole strand along
-      const u = (frac(i / strandN + t * 0.045) * 2 - 1) * 0.96;
-      const surf = Math.sqrt(Math.max(0, 1 - u * u));
+  for (let strand = 0; strand < 3; strand++) {
+    const phase = (strand / 3) * Math.PI * 2;
+    for (let i = 0; i < strandDots; i++) {
+      const u = (frac(i / strandDots + t * 0.045) * 2 - 1) * 0.96;
+      const surface = Math.sqrt(Math.max(0, 1 - u * u));
       const endFade = Math.min(1, (1 - Math.abs(u)) / 0.1);
-      const a = u * Math.PI * turns + phase;
-      // radial breathing: strands trade places — the over/under of a plait
-      const weave = 1 + 0.075 * Math.sin(u * Math.PI * turns * 2 + phase * 2 + t * 0.8);
-      const rr = surf * R * weave;
-      const [px, py, zr] = pt(Math.cos(a) * rr, u * R * weave, Math.sin(a) * rr);
-      const depth = (zr / R + 1) / 2;
+      const angle = u * Math.PI * turns + phase;
+      const weave = 1 + 0.055 * Math.sin(u * Math.PI * turns * 2 + phase * 2 + t * 0.8);
+      const point = cubeSurface([Math.cos(angle) * surface, u, Math.sin(angle) * surface], half * weave);
+      const [x, y, z] = pt(point[0], point[1], point[2]);
+      const depth = cubeDepth(z, half);
       dots.push({
-        x: px,
-        y: py,
-        z: zr,
-        r: ((o.rBase ?? 1.2) + (o.rDepth ?? 1.8) * depth) * rs,
+        x,
+        y,
+        z,
+        r: ((o.rBase ?? 1.15) + (o.rDepth ?? 1.75) * depth) * rs,
         white: 0.55 - 0.45 * depth,
-        a: endFade * (0.45 + 0.55 * depth)
+        a: endFade * (0.42 + 0.58 * depth)
       });
     }
   }
+
   paint(ctx, dots, dark, o.rMin);
 };

@@ -1,11 +1,6 @@
-// The shipped tunings: nine states × two sizes, baked from the inkform
-// mini-page tuning session. `count`/`size` are multipliers over the base
-// fine profiles; `speed` multiplies the shared clock. Resolved once per
-// (state, size) pair and cached — the render loop sees plain numbers.
-
 import type { ModeOpts } from './engine/profiles';
 import { BASE_PROFILES, scaleCounts, scaleRadii } from './engine/profiles';
-import type { OrbSize, OrbState } from './types';
+import type { CubeSize, CubeState } from './types';
 
 export type ModeKey =
   | 'orbits'
@@ -18,7 +13,7 @@ export type ModeKey =
   | 'ring'
   | 'morph';
 
-export const STATE_TO_MODE: Record<OrbState, ModeKey> = {
+export const STATE_TO_MODE: Record<CubeState, ModeKey> = {
   working: 'orbits',
   searching: 'globe',
   solving: 'rubik',
@@ -30,50 +25,51 @@ export const STATE_TO_MODE: Record<OrbState, ModeKey> = {
   shaping: 'morph'
 };
 
+export const CUBE_STATE_TO_MODE = STATE_TO_MODE;
+
 interface Preset {
   speed: number;
   count: number;
   size: number;
-  /** Extra mode opts merged verbatim after scaling. */
   extra?: ModeOpts;
 }
 
-const PRESETS: Record<ModeKey, Record<OrbSize, Preset>> = {
+const PRESETS: Record<ModeKey, Record<CubeSize, Preset>> = {
   orbits: {
-    64: { speed: 1.885, count: 1, size: 1 },
-    20: { speed: 3.9, count: 0.238, size: 2.4 }
+    64: { speed: 1.9, count: 1, size: 1 },
+    20: { speed: 3.4, count: 0.45, size: 1.75 }
   },
   globe: {
-    64: { speed: 2.015, count: 0.42, size: 1.15, extra: { scanMul: 4.08, dimBase: 0.45 } },
-    20: { speed: 2.665, count: 0.105, size: 1.75, extra: { scanMul: 4.335, dimBase: 0.45 } }
+    64: { speed: 1.8, count: 0.55, size: 1.1 },
+    20: { speed: 2.55, count: 0.14, size: 1.7, extra: { dimBase: 0.54, scanWidth: 0.24 } }
   },
   rubik: {
-    64: { speed: 1.82, count: 0.35, size: 1.05 },
-    20: { speed: 1.95, count: 0.088, size: 1.9 }
+    64: { speed: 1.7, count: 0.55, size: 1.05 },
+    20: { speed: 1.9, count: 0.14, size: 1.75, extra: { moveCount: 8 } }
   },
   wave: {
-    64: { speed: 4.388, count: 0.341, size: 1 },
-    20: { speed: 3.998, count: 0.105, size: 1.6 }
+    64: { speed: 3.7, count: 0.55, size: 1 },
+    20: { speed: 3.4, count: 0.14, size: 1.58, extra: { waveAmp: 0.045 } }
   },
   web: {
-    64: { speed: 3.315, count: 1.35, size: 0.95 },
-    20: { speed: 6.63, count: 0.25, size: 1.52 }
+    64: { speed: 3.1, count: 1.15, size: 0.95 },
+    20: { speed: 5.8, count: 0.3, size: 1.5, extra: { linkDistance: 1.05 } }
   },
   braid: {
-    64: { speed: 1.625, count: 0.5, size: 1 },
-    20: { speed: 2.75, count: 0.1125, size: 1.36 }
+    64: { speed: 1.55, count: 0.65, size: 1 },
+    20: { speed: 2.5, count: 0.18, size: 1.38 }
   },
   ribbon: {
-    64: { speed: 2.34, count: 0.25, size: 0.85, extra: { spin: 0, bandMul: 3.9, wobMul: 1 } },
-    20: { speed: 3.12, count: 0.051, size: 1.073, extra: { spin: 0, bandMul: 4.94, wobMul: 1 } }
+    64: { speed: 2.2, count: 0.48, size: 0.9, extra: { bandMul: 1.35 } },
+    20: { speed: 2.9, count: 0.14, size: 1.28, extra: { bandMul: 1.5 } }
   },
   ring: {
-    64: { speed: 3.24, count: 0.25, size: 0.956, extra: { spin: 0, bandMul: 3.627, wobMul: 0.368 } },
-    20: { speed: 3.78, count: 0.028, size: 1.622, extra: { spin: 0, bandMul: 3.968, wobMul: 0.565 } }
+    64: { speed: 2.8, count: 0.9, size: 0.95 },
+    20: { speed: 3.3, count: 0.45, size: 1.5, extra: { shells: 2, breathAmp: 0.065 } }
   },
   morph: {
-    64: { speed: 2.405, count: 0.702, size: 0.395, extra: { spread: 1.45 } },
-    20: { speed: 2.08, count: 0.53, size: 1.011, extra: { spread: 1.45 } }
+    64: { speed: 2.2, count: 0.9, size: 0.9 },
+    20: { speed: 2, count: 0.45, size: 1.5 }
   }
 };
 
@@ -85,19 +81,16 @@ export interface Resolved {
 
 const cache = new Map<string, Resolved>();
 
-/** Resolve a (state, size) pair to its mode + fully-scaled draw options. */
-export function resolvePreset(state: OrbState, size: OrbSize): Resolved {
+export function resolvePreset(state: CubeState, size: CubeSize): Resolved {
   const key = `${state}-${size}`;
-  const hit = cache.get(key);
-  if (hit) return hit;
-
+  const cached = cache.get(key);
+  if (cached) return cached;
   const mode = STATE_TO_MODE[state];
   const preset = PRESETS[mode][size];
   let opts: ModeOpts = { ...BASE_PROFILES[mode] };
   if (preset.count !== 1) opts = scaleCounts(opts, preset.count);
   if (preset.size !== 1) opts = scaleRadii(opts, preset.size);
   if (preset.extra) opts = { ...opts, ...preset.extra };
-
   const resolved: Resolved = { mode, speed: preset.speed, opts };
   cache.set(key, resolved);
   return resolved;

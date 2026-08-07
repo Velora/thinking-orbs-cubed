@@ -1,138 +1,51 @@
-// Morph: a dotted outline cycling circle → triangle → square → circle —
-// the "shaping" state. Each shape is a continuous closed path
-// parameterised by arc length (top-centre start, clockwise). Every
-// frame the engine blends the two neighbouring paths, then lays the
-// dots EVENLY along the blended outline — spacing stays uniform at
-// every instant of the morph, holds and transitions alike. Plain
-// circle fills only: no canvas/SVG filters, fully cross-browser.
-
 import type { Dot, ModeDraw } from './types';
-import { paint } from './core';
+import { paint, radiusScale } from './core';
+import { cubeDepth, cubeRadius, cubeWirePoints, makeCubeProj } from './cube';
 
-type Path = (f: number) => [number, number];
+const SHAPES: ReadonlyArray<readonly [number, number, number]> = [
+  [1, 1, 1],
+  [0.78, 1.16, 0.9],
+  [1.15, 0.82, 1]
+];
 
-function smoothE(x: number): number {
-  return x * x * (3 - 2 * x);
+function smooth(value: number): number {
+  return value * value * (3 - 2 * value);
 }
-
-function polyPath(verts: ReadonlyArray<readonly [number, number]>): Path {
-  const V = verts.length;
-  const L: number[] = [];
-  let total = 0;
-  for (let i = 0; i < V; i++) {
-    const a = verts[i];
-    const b = verts[(i + 1) % V];
-    const l = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    L.push(l);
-    total += l;
-  }
-  return (f) => {
-    let target = f * total;
-    let i = 0;
-    while (target > L[i] && i < V - 1) {
-      target -= L[i];
-      i++;
-    }
-    const a = verts[i];
-    const b = verts[(i + 1) % V];
-    const ff = L[i] ? Math.min(1, target / L[i]) : 0;
-    return [a[0] + (b[0] - a[0]) * ff, a[1] + (b[1] - a[1]) * ff];
-  };
-}
-
-const CIRCLE: Path = (f) => {
-  const a = -Math.PI / 2 + f * 2 * Math.PI;
-  return [Math.cos(a) * 0.24, Math.sin(a) * 0.24];
-};
-const TRIANGLE = polyPath([
-  [0.0, -0.26],
-  [0.24, 0.16],
-  [-0.24, 0.16]
-]);
-// 5-vertex walk so the path STARTS at top-centre like the other shapes
-const SQUARE = polyPath([
-  [0, -0.2],
-  [0.2, -0.2],
-  [0.2, 0.2],
-  [-0.2, 0.2],
-  [-0.2, -0.2]
-]);
-const CYCLE: Path[] = [CIRCLE, TRIANGLE, SQUARE];
-
-// low floor keeps sparse outlines possible while never degenerating
-function morphN(d: number): number {
-  return Math.max(6, Math.round(34 * d));
-}
-
-const HOLD = 1.4;
-const MORPH = 0.9;
-const SEG = HOLD + MORPH;
-
-// This state was tuned in inkform, which paints it through a blur +
-// threshold "goo" filter; we draw plain circles instead, since `ctx.filter`
-// and SVG filter refs are not safe to rely on across Chrome / Safari /
-// Firefox. The dot GEOMETRY is identical either way — the threshold just
-// yields a hard edge where a plain fill has an antialiased one, so these
-// dots read a touch softer than inkform's. Don't "correct" for that by
-// shrinking the radius: it makes the mark genuinely smaller than the tuning.
 
 export const drawMorph: ModeDraw = (ctx, size, t, dark, o) => {
-  const K = CYCLE.length;
-  const tc = t % (SEG * K);
-  const k = Math.floor(tc / SEG);
-  const local = tc - k * SEG;
-  const m = local > HOLD ? smoothE((local - HOLD) / MORPH) : 0;
-  const sprd = o.spread ?? 1;
-
-  // blend the two shape PATHS at m, then measure the blended outline
-  const pA = CYCLE[k];
-  const pB = CYCLE[(k + 1) % K];
-  const M = 160;
-  const pts: Array<[number, number]> = [];
-  for (let i = 0; i < M; i++) {
-    const f = i / M;
-    const a = pA(f);
-    const b = pB(f);
-    pts.push([(a[0] + (b[0] - a[0]) * m) * sprd, (a[1] + (b[1] - a[1]) * m) * sprd]);
-  }
-  const L: number[] = [];
-  let total = 0;
-  for (let i = 0; i < M; i++) {
-    const a = pts[i];
-    const b = pts[(i + 1) % M];
-    const l = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    L.push(l);
-    total += l;
-  }
-
-  // dot radius depends ONLY on rDot (the size knob); the count sets the
-  // gaps. Formed shapes breathe a little (uniform pulse).
-  const n = morphN(o.iconD ?? 1);
-  const re = (o.rDot ?? 0.021) * 1.35 * sprd;
-  const pulse = 1 + 0.02 * Math.sin(local * 3.1);
-
+  const hold = 1.35;
+  const transition = 0.9;
+  const segment = hold + transition;
+  const cycleTime = t % (segment * SHAPES.length);
+  const shapeIndex = Math.floor(cycleTime / segment);
+  const local = cycleTime - shapeIndex * segment;
+  const blend = local > hold ? smooth((local - hold) / transition) : 0;
+  const from = SHAPES[shapeIndex];
+  const to = SHAPES[(shapeIndex + 1) % SHAPES.length];
+  const scales = [
+    from[0] + (to[0] - from[0]) * blend,
+    from[1] + (to[1] - from[1]) * blend,
+    from[2] + (to[2] - from[2]) * blend
+  ];
+  const center = size / 2;
+  const half = cubeRadius(size, 0.86 * (o.shapeScale ?? 1));
+  const pt = makeCubeProj(Math.sin(t * 0.15) * 0.055, Math.sin(t * 0.1) * 0.025, center, center, 1);
+  const rs = radiusScale(size, o.rsPow ?? 0.6);
+  const pulse = 1 + 0.018 * Math.sin(local * 3.1);
   const dots: Dot[] = [];
-  const c2 = size / 2;
-  let seg = 0;
-  let acc = 0;
-  for (let k2 = 0; k2 < n; k2++) {
-    const target = (k2 / n) * total;
-    while (acc + L[seg] < target && seg < M - 1) {
-      acc += L[seg];
-      seg++;
-    }
-    const a = pts[seg];
-    const b = pts[(seg + 1) % M];
-    const f = L[seg] ? Math.min(1, (target - acc) / L[seg]) : 0;
-    const x = (a[0] + (b[0] - a[0]) * f) * pulse;
-    const y = (a[1] + (b[1] - a[1]) * f) * pulse;
+
+  for (const point of cubeWirePoints(o.edgeDots ?? 10, half)) {
+    const [x, y, z] = pt(point[0] * scales[0] * pulse, point[1] * scales[1] * pulse, point[2] * scales[2] * pulse);
+    const depth = cubeDepth(z, half * 1.2);
     dots.push({
-      x: c2 + x * size,
-      y: c2 + y * size,
-      z: 0,
-      r: Math.max(0.35, re * size),
-      white: 0.1
+      x,
+      y,
+      z,
+      r: ((o.dotR ?? 1.25) + depth * (o.dotDepthR ?? 0.9)) * rs,
+      white: 0.58 - depth * 0.48,
+      a: 0.42 + depth * 0.58
     });
   }
+
   paint(ctx, dots, dark, o.rMin);
 };

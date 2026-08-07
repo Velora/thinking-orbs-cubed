@@ -6,7 +6,7 @@ import { Header } from './components/Header';
 import { Playground } from './components/Playground';
 import { useTheme } from './hooks/useTheme';
 
-const USAGE_SNIPPET = `import { ThinkingOrb } from 'thinking-orbs';\n\n<ThinkingOrb state="listening" size={64} />`;
+const USAGE_SNIPPET = `import { ThinkingCube } from 'thinking-orbs';\n\n<ThinkingCube state="listening" size={64} />`;
 
 export function App() {
   const [theme, toggleTheme] = useTheme();
